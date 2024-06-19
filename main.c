@@ -1,20 +1,56 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-// #include "tdas/list.h"
-// #include "tdas/list.c"
-// #include "tdas/map.h"
+#include "tdas/list.h"
+#include "tdas/map.h"
+#include "tdas/queue.h"
 
-//Prototipo funciones 
+typedef struct {
+    char nombre[50];
+    char rut[12];
+    char direccion[100];
+    char historialAcademico[500];
+} Estudiante;
+
+typedef struct {
+    char nombre[50];
+    char tipo[20];
+    float monto;
+    char requisitos[200];
+} Beca;
+
+typedef struct {
+    char rutEstudiante[12];
+    char nombreBeca[50];
+    char estado[20]; // Estado puede ser "En revisión", "Aprobada", "Rechazada"
+} Solicitud;
+
+
+
+// Prototipo de funciones
 void presioneTeclaParaContinuar();
 void limpiarPantalla();
-void opcionUsuario();
-void opcionAdmin();
+void opcionUsuario(Map *estudiantes, List *becas, Queue *solicitudes);
+void opcionAdmin(Map *estudiantes, List *becas, Queue *solicitudes);
 int login(int);
 
-//Prototipos submenús
+// Prototipos submenús
 void mostrarMenuAdminAlumno();
 void mostrarMenuAlumno();
+void mostrarMenuAdmin();
+
+
+// Prototipos funciones de usuario
+void completarPerfil(Map *estudiantes);
+void postularBeca(Map *estudiantes, List *becas, Queue *solicitudes);
+void seguimientoPostulacion(Queue *solicitudes);
+
+// Prototipos funciones de administrador
+void gestionarEstudiantes(Map *estudiantes);
+void revisarSolicitudes(Queue *solicitudes);
+void gestionarBecas(List *becas);
+void aprobarRechazarSolicitudes(Queue *solicitudes);
+void seguimientoBecas(List *becas);
 
 // Función para limpiar la pantalla
 void limpiarPantalla() {
@@ -60,22 +96,25 @@ void mostrarMenuAdmin(){
 
 
 int main() {
+  Map *estudiantes = map_create((int (*)(void*, void*))strcmp);
+  List *becas = list_create();
+  Queue *solicitudes = queue_create(NULL);
+
   int opcion;
   int resultadoAdmin, n;
-  do{
+  do {
     mostrarMenuAdminAlumno();
     printf("Ingrese su opción: ");
     scanf("%d", &opcion);
-    switch(opcion){
+    switch(opcion) {
       case 1:
-        opcionUsuario();
+        opcionUsuario(estudiantes, becas, solicitudes);
         break;
       case 2:
         resultadoAdmin = login(n);
-        if (resultadoAdmin == 1){
-          opcionAdmin();
-        }
-        else{
+        if (resultadoAdmin == 1) {
+          opcionAdmin(estudiantes, becas, solicitudes);
+        } else {
           limpiarPantalla();
           puts("Contraseña incorrecta");
         }
@@ -90,9 +129,9 @@ int main() {
   presioneTeclaParaContinuar();
   limpiarPantalla();
   return 0;
-}
+  }
 
-void opcionUsuario(){
+void opcionUsuario(Map *estudiantes, List *becas, Queue *solicitudes) {
   int opcion;
 
   do {
@@ -102,13 +141,13 @@ void opcionUsuario(){
     scanf("%d", &opcion);
     switch(opcion) {
       case 1:
-        // Llamar a la función para ingresar o completar perfil
+        completarPerfil(estudiantes);
         break;
       case 2:
-        // Llamar a la función para postular a beca
+        postularBeca(estudiantes, becas, solicitudes);
         break;
       case 3:
-        // Llamar a la función para seguimiento de postulación
+        seguimientoPostulacion(solicitudes);
         break;
       case 4:
         puts("Volviendo al menú principal...");
@@ -121,7 +160,7 @@ void opcionUsuario(){
   limpiarPantalla();
 }
 
-void opcionAdmin(){
+void opcionAdmin(Map *estudiantes, List *becas, Queue *solicitudes) {
   int opcion;
   do {
     limpiarPantalla();
@@ -130,19 +169,19 @@ void opcionAdmin(){
     scanf("%d", &opcion);
     switch(opcion) {
       case 1:
-        // Llamar a la función para registro de estudiantes
+        gestionarEstudiantes(estudiantes);
         break;
       case 2:
-        // Llamar a la función para revisar solicitudes
+        revisarSolicitudes(solicitudes);
         break;
       case 3:
-        // Llamar a la función para gestionar becas
+        gestionarBecas(becas);
         break;
       case 4:
-        // Llamar a la función para administrar el proceso de selección
+        aprobarRechazarSolicitudes(solicitudes);
         break;
       case 5:
-        // Llamar a la función de seguimiento de beca
+        seguimientoBecas(becas);
         break;
       case 6:
         puts("Volviendo al menú principal...");
@@ -155,16 +194,103 @@ void opcionAdmin(){
   limpiarPantalla();
 }
 
-int login(int n){
+int login(int n) {
   char contrasena[20];
 
   printf("Contraseña: ");
   scanf("%s", contrasena);
-  if (strcmp(contrasena, "admin") == 0){
+  if (strcmp(contrasena, "admin") == 0) {
     n = 1;
-  } 
-  else{
+  } else {
     n = 0;
   }
   return n;
+}
+
+
+// Funciones para las funcionalidades de estudiante
+void completarPerfil(Map *estudiantes) {
+  Estudiante *nuevoEstudiante = malloc(sizeof(Estudiante));
+  printf("Ingrese su nombre: ");
+  scanf(" %[^\n]", nuevoEstudiante->nombre);
+  printf("Ingrese su RUT: ");
+  scanf(" %s", nuevoEstudiante->rut);
+  printf("Ingrese su dirección: ");
+  scanf(" %[^\n]", nuevoEstudiante->direccion);
+  printf("Ingrese su historial académico: ");
+  scanf(" %[^\n]", nuevoEstudiante->historialAcademico);
+
+  map_insert(estudiantes, nuevoEstudiante->rut, nuevoEstudiante);
+  printf("Perfil completado exitosamente.\n");
+}
+
+void postularBeca(Map *estudiantes, List *becas, Queue *solicitudes) {
+  Solicitud *nuevaSolicitud = malloc(sizeof(Solicitud));
+  char rut[12];
+  printf("Ingrese su RUT: ");
+  scanf(" %s", rut);
+
+  if (map_search(estudiantes, rut) != NULL) {
+    printf("Ingrese el nombre de la beca a la que desea postular: ");
+    scanf(" %[^\n]", nuevaSolicitud->nombreBeca);
+    strcpy(nuevaSolicitud->rutEstudiante, rut);
+    strcpy(nuevaSolicitud->estado, "En revisión");
+
+    queue_insert(solicitudes, nuevaSolicitud);
+    printf("Postulación realizada exitosamente.\n");
+  } else {
+    printf("Estudiante no encontrado.\n");
+  }
+}
+
+void seguimientoPostulacion(Queue *solicitudes) {
+  char rut[12];
+  printf("Ingrese su RUT: ");
+  scanf(" %s", rut);
+
+  Queue *tempQueue = queue_create(NULL);
+  int encontrado = 0;
+  Solicitud *solicitud;
+  while ((solicitud = queue_remove(solicitudes)) != NULL) {
+    if (strcmp(solicitud->rutEstudiante, rut) == 0) {
+      printf("Solicitud a Beca: %s - Estado: %s\n", solicitud->nombreBeca, solicitud->estado);
+      encontrado = 1;
+    }
+    queue_insert(tempQueue, solicitud);
+  }
+
+  while ((solicitud = queue_remove(tempQueue)) != NULL) {
+    queue_insert(solicitudes, solicitud);
+  }
+
+  if (!encontrado) {
+    printf("No se encontraron solicitudes.\n");
+  }
+  queue_clean(tempQueue);
+}
+
+// Funciones para las funcionalidades de administrador
+void gestionarEstudiantes(Map *estudiantes) {
+  // Similar a completarPerfil, pero con opciones para agregar, actualizar y eliminar
+  // Aquí debe implementar la lógica para manejar estudiantes
+}
+
+void revisarSolicitudes(Queue *solicitudes) {
+  // Recorre la cola y revisa cada solicitud
+  // Aquí debe implementar la lógica para revisar solicitudes
+}
+
+void gestionarBecas(List *becas) {
+  // Permite agregar, actualizar o eliminar becas
+  // Aquí debe implementar la lógica para gestionar becas
+}
+
+void aprobarRechazarSolicitudes(Queue *solicitudes) {
+  // Permite aprobar o rechazar solicitudes en la cola
+  // Aquí debe implementar la lógica para aprobar/rechazar solicitudes
+}
+
+void seguimientoBecas(List *becas) {
+  // Realiza un seguimiento de las becas
+  // Aquí debe implementar la lógica para seguimiento de becas
 }
