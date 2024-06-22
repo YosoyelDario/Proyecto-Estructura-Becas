@@ -99,6 +99,7 @@ int main() {
   Map *estudiantes = map_create((int (*)(void*, void*))strcmp);
   List *becas = list_create();
   Queue *solicitudes = queue_create(NULL);
+  //Lógica de lectura de archivo, antes de la ejecución del menú
 
   int opcion;
   int resultadoAdmin, n;
