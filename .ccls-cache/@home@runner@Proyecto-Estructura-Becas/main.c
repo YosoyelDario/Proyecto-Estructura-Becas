@@ -14,11 +14,13 @@ typedef struct {
 } Estudiante;
 
 typedef struct {
-    char nombreBeca[50];
-    char tipo[20];
-    float monto;
-    char requisitos[200];
-} Beca;
+  char nombre[100];
+  int socioEconomico;
+  int puntaje;
+  int notasEM;
+  int discapacidad;
+  int originario;
+} tipoBeca;
 
 typedef struct {
     char rutEstudiante[12];
@@ -40,6 +42,8 @@ void mostrarMenuAdminAlumno();
 void mostrarMenuAlumno();
 void mostrarMenuAdmin();
 
+//Prototipos funciones de inicialización
+void inicializarBecas(List* becas);
 
 // Prototipos funciones de usuario
 void completarPerfil(Map *estudiantes);
@@ -113,7 +117,8 @@ int main() {
   Map *estudiantes = map_create((int (*)(void*, void*))strcmp);
   List *becas = list_create();
   Queue *solicitudes = queue_create(NULL);
-
+  inicializarBecas(becas);
+  
   int opcion;
   int resultadoAdmin, n;
   do {
@@ -143,7 +148,30 @@ int main() {
   presioneTeclaParaContinuar();
   limpiarPantalla();
   return 0;
+}
+
+//Funcion para inicializar becas
+void inicializarBecas(List *listaBecas) {
+  FILE *archivo = fopen("extra_y_data/Archivo_CSV_Becas.csv", "r");
+  if (archivo == NULL){
+    perror("Error al abrir el archivo");
+    exit(EXIT_FAILURE);
   }
+    
+  char **campos;
+  while ((campos = leer_linea_csv(archivo, ',')) != NULL) {
+    tipoBeca *beca = malloc(sizeof(tipoBeca)); 
+  
+    strcpy(beca->nombre,campos[0]);
+    beca->socioEconomico = atoi(campos[1]);
+    beca->puntaje = atoi(campos[2]);
+    beca->notasEM = atoi(campos[3]);
+    beca->discapacidad = atoi(campos[4]);
+    beca->originario = atoi(campos[5]);
+  
+    list_pushBack(listaBecas, beca);
+  }
+}
 
 void opcionUsuario(Map *estudiantes, List *becas, Queue *solicitudes) {
   int opcion;
@@ -273,16 +301,16 @@ void postularBeca(Map *estudiantes, List *becas, Queue *solicitudes)
     return;
   }
   //Solicitar nombre de la beca a postular.
-  char beca[100];
+  char nombreBeca[100];
   printf("Ingrese el nombre de la beca a la que desea postular :");
-  scanf(" %[^\n]", beca);
+  scanf(" %[^\n]", nombreBeca);
 
   //Verificar si existe la beca en la lista de becas.
-  Beca *becaExiste = NULL;
-  Beca* current = list_first(becas);
+  tipoBeca *becaExiste = NULL;
+  tipoBeca* current = list_first(becas);
   while(current != NULL)
   {
-    if(strcmp(current->nombreBeca, beca) == 0){
+    if(strcmp(current->nombre, nombreBeca) == 0){
       becaExiste = current;
       break;
     }
@@ -302,7 +330,7 @@ void postularBeca(Map *estudiantes, List *becas, Queue *solicitudes)
 
   while((postulacion = queue_remove(solicitudes)) != NULL)
   {
-    if(strcmp(postulacion->rutEstudiante, rut) == 0 & strcmp(postulacion->nombreBeca, beca) == 0)
+    if(strcmp(postulacion->rutEstudiante, rut) == 0 & strcmp(postulacion->nombreBeca, nombreBeca) == 0)
     {
       solicitudExiste = postulacion;
     }
@@ -317,7 +345,7 @@ void postularBeca(Map *estudiantes, List *becas, Queue *solicitudes)
 
   if(solicitudExiste != NULL)
   {
-    printf("Ya existe una postulacion a la beca %s por el rut %s", beca, rut);
+    printf("Ya existe una postulacion a la beca %s por el rut %s", nombreBeca, rut);
     //Se puede implementar un if else aqui que si desea altiro saber el estado de solicitud, llamando a la otra funcion.
     return;
   }
@@ -332,7 +360,7 @@ void postularBeca(Map *estudiantes, List *becas, Queue *solicitudes)
 
   //Asignar datos a la nueva solicitud.
   strcpy(newSolicitud->rutEstudiante, rut);
-  strcpy(newSolicitud->nombreBeca, beca);
+  strcpy(newSolicitud->nombreBeca, nombreBeca);
   strcpy(newSolicitud->estado, "En revisión");
 
   //Insertar la nueva solicitud en la cola de solicitudes.
@@ -583,21 +611,25 @@ void gestionarBecas(List *becas)
       case 1: 
       {
         //Agregar nueva beca
-        Beca *nuevaBeca = malloc(sizeof(Beca));
+        tipoBeca *nuevaBeca = malloc(sizeof(tipoBeca));
         if(nuevaBeca == NULL)
         {
           printf("Error al reservar memoria para la nueva beca. (Linea 575)\n");
           break;
         }
 
-        printf("Ingrese el nombre de la beca: ");
-        scanf(" %[^\n]", nuevaBeca->nombreBeca);
-        printf("Ingrese el tipo de la beca: ");
-        scanf(" %[^\n]", nuevaBeca->tipo);
-        printf("Ingresel el monto de la beca: ");
-        scanf("%f", &nuevaBeca->monto);
-        printf("Ingrese los requisitos de la beca: ");
-        scanf(" %[^\n]", nuevaBeca->requisitos);
+        printf("Ingrese el nombre de la beca: \n");
+        scanf(" %[^\n]s", nuevaBeca->nombre);
+        printf("Ingrese el Requisito Socioeconómico de la beca: \n");
+        scanf(" %d", &nuevaBeca->socioEconomico);
+        printf("Ingrese el Puntaje Ponderado PAES: \n");
+        scanf("%d", &nuevaBeca->puntaje);
+        printf("Ingrese el Promedio NEM: \n");
+        scanf(" %d", &nuevaBeca->notasEM);
+        printf("Ingrese parámetro de discapacidad (1 = sí, 0 = no): \n");
+        scanf("%d", &nuevaBeca->discapacidad);
+        printf("Ingrese parámetro de pueblo originario (1 = sí, 0 = no): \n");
+        scanf("%d", &nuevaBeca->originario);
 
         list_pushBack(becas, nuevaBeca);
         printf("Beca agregada exitosamente.\n");
@@ -608,13 +640,13 @@ void gestionarBecas(List *becas)
         //Actualizar datos de una beca
         char nombreBeca[50];
         printf("Ingrese el nombre de la beca que desea actualizar: ");
-        scanf(" %[^\n]", nombreBeca);
+        scanf(" %[^\n]s", nombreBeca);
 
-        Beca *beca = NULL;
-        Beca *auxCurrent = list_first(becas);
+        tipoBeca *beca = NULL;
+        tipoBeca *auxCurrent = list_first(becas);
         while(auxCurrent != NULL)
         {
-          if(strcmp(auxCurrent->nombreBeca, nombreBeca) == 0)
+          if(strcmp(auxCurrent->nombre, nombreBeca) == 0)
           {
             beca = auxCurrent;
             break;
@@ -643,9 +675,9 @@ void gestionarBecas(List *becas)
           switch(opcionDatos)
           {
             case 1:
-              printf("Nombre actual de la beca: %s\n", beca->nombreBeca);
+              printf("Nombre actual de la beca: %s\n", beca->nombre);
               printf("Ingrese el nuevo nombre de la beca: ");
-              scanf(" %[^\n]", beca->nombreBeca);
+              scanf(" %[^\n]", beca->nombre);
               break;
             case 2:
               printf("Tipo actual de la beca: %s\n", beca->tipo);
