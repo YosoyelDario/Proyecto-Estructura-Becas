@@ -6,5 +6,4 @@
 
 
 char **leer_linea_csv(FILE *archivo, char separador);
-
 #endif
