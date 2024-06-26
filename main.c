@@ -38,6 +38,7 @@ int login(int);
 void mostrarMenuAdminAlumno();
 void mostrarMenuAlumno();
 void mostrarMenuAdmin();
+void mostrarLogo();
 
 
 // Prototipos funciones de usuario
@@ -79,6 +80,9 @@ void mostrarMenuAdminAlumno(){
 }
 
 void mostrarMenuAlumno(){
+  puts("===============================");
+  puts("         MENÚ ALUMNOS");
+  puts("===============================");
   puts("1) Ingresar o Completar perfil");
   puts("2) Postular a Beca");
   puts("3) Seguimiento de Postulación");
@@ -103,8 +107,7 @@ void mostrarLogo() {
     printf("|____/ \\___|\\___\\__,_|   |_||_|  \\__,_|\\___|_|\\_\\\n");
     printf("                                                 \n");
     printf("==========================================================\n");
-    printf("       Bienvenido a BECA TRACK\n");
-    printf("===================================\n\n");
+
 }
 
 int main() {
